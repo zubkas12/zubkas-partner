@@ -47,6 +47,9 @@ function planToForm(p: Plan): PlanFormState {
 function buildPayload(form: PlanFormState) {
   const cleanFeatures = form.features.map(f => f.trim()).filter(Boolean);
   const basePrice = form.price ? Number(form.price) : null;
+  const numericPrice = basePrice ?? 0;
+  const gstRate = form.gstApplicable ? Number(form.gstRate) : 0;
+  const gstAmount = form.gstApplicable ? computeGstAmount(numericPrice, gstRate) : 0;
   return {
     name: form.name,
     price: basePrice,
@@ -55,7 +58,8 @@ function buildPayload(form: PlanFormState) {
     description: form.description,
     features: cleanFeatures,
     gstApplicable: form.gstApplicable,
-    gstRate: form.gstApplicable ? Number(form.gstRate) : 0,
+    gstRate,
+    gstAmount,
   };
 }
 

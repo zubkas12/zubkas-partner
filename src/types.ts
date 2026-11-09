@@ -42,6 +42,7 @@ export interface Plan {
   isCustom?: boolean;
   gstApplicable?: boolean;
   gstRate?: number;
+  gstAmount?: number;
 }
 
 export interface Customer {
