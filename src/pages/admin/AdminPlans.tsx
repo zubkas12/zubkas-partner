@@ -46,13 +46,12 @@ function planToForm(p: Plan): PlanFormState {
 
 function buildPayload(form: PlanFormState) {
   const cleanFeatures = form.features.map(f => f.trim()).filter(Boolean);
-  const basePrice = form.price ? Number(form.price) : null;
-  const numericPrice = basePrice ?? 0;
+  const numericPrice = form.price ? Number(form.price) : 0;
   const gstRate = form.gstApplicable ? Number(form.gstRate) : 0;
   const gstAmount = form.gstApplicable ? computeGstAmount(numericPrice, gstRate) : 0;
   return {
     name: form.name,
-    price: basePrice,
+    price: numericPrice,
     commissionRate: Number(form.commissionRate),
     type: form.type,
     description: form.description,
@@ -71,11 +70,22 @@ export function AdminPlans() {
   const [editTarget, setEditTarget] = useState<Plan | null>(null);
   const [editForm, setEditForm] = useState<PlanFormState>(emptyForm);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    addPlan(buildPayload(form));
-    setForm(emptyForm);
-    setShowAdd(false);
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await addPlan(buildPayload(form));
+      setForm(emptyForm);
+      setShowAdd(false);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to add plan');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const openEdit = (plan: Plan) => {
@@ -83,11 +93,19 @@ export function AdminPlans() {
     setEditForm(planToForm(plan));
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editTarget) return;
-    updatePlan(editTarget.id, buildPayload(editForm));
-    setEditTarget(null);
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await updatePlan(editTarget.id, buildPayload(editForm));
+      setEditTarget(null);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to update plan');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const addFeature = () => setForm(prev => ({ ...prev, features: [...prev.features, ''] }));
@@ -293,7 +311,10 @@ export function AdminPlans() {
               ))}
             </div>
           </div>
-          <button type="submit" className="btn-primary w-full">Add Plan</button>
+          {saveError && (
+            <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">{saveError}</div>
+          )}
+          <button type="submit" disabled={saving} className="btn-primary w-full">{saving ? 'Adding...' : 'Add Plan'}</button>
         </form>
       </Modal>
 
@@ -359,7 +380,10 @@ export function AdminPlans() {
               ))}
             </div>
           </div>
-          <button type="submit" className="btn-primary w-full">Save Changes</button>
+          {saveError && (
+            <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">{saveError}</div>
+          )}
+          <button type="submit" disabled={saving} className="btn-primary w-full">{saving ? 'Saving...' : 'Save Changes'}</button>
         </form>
       </Modal>
 
